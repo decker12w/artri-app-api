@@ -6,6 +6,12 @@ Este projeto é parte da disciplina de Desenvolvimento Mobile. Siga o guia abaix
 
 ---
 
+## 👥 Integrantes do grupo
+
+- José Maia de Oliveira
+
+---
+
 ## 🛠️ Tecnologias Utilizadas
 * **Linguagem:** Python 3.12+
 * **Framework:** Django 5.x

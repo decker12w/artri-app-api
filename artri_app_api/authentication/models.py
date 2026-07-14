@@ -1,3 +1,4 @@
+from django.contrib.postgres.fields import ArrayField
 from django.db import models
 from django.contrib.auth.models import AbstractUser
 
@@ -33,14 +34,32 @@ class User(AbstractUser):
 class Remedy(models.Model):
     name = models.CharField(max_length=50)
     description = models.TextField()
-    quantity = models.IntegerField()
-    days_of_week = models.CharField(choices=DAYS_OF_WEEK, max_length=9, default='Monday')
+    quantity = models.CharField(max_length=50, default='1')
+    days_of_week = ArrayField(
+        models.CharField(max_length=9, choices=DAYS_OF_WEEK),
+        default=list,
+    )
     hour = models.TimeField()
     user = models.ForeignKey(User, on_delete=models.CASCADE)
+    reminder_enabled = models.BooleanField(default=True)
 
     def __str__(self):
         return self.name
-    
+
+
+class RemedyIntake(models.Model):
+    # Registra que o remédio foi tomado numa data específica. A existência
+    # do registro = tomado; ausência = não tomado (sem campo 'taken').
+    remedy = models.ForeignKey(Remedy, on_delete=models.CASCADE, related_name='intakes')
+    date = models.DateField()
+
+    class Meta:
+        unique_together = ('remedy', 'date')
+
+    def __str__(self):
+        return f'{self.remedy.name} - {self.date}'
+
+
 class Exercise(models.Model):
     name = models.CharField(max_length=100) 
     
@@ -64,7 +83,7 @@ class TrainingExercise(models.Model):
         ordering = ['order'] # O Django sempre vai devolver os exercícios ordenados por este campo
 
 class Training(models.Model):
-    name = models.CharField(max_length=50)
+    name = models.CharField(max_length=100)
     description = models.TextField()
     # Adicionamos o 'through' para avisar o Django que a relação agora tem uma ordem
     exercises = models.ManyToManyField(Exercise, through=TrainingExercise)

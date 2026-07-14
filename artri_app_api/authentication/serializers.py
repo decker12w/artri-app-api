@@ -1,6 +1,6 @@
 # authentication/serializers.py
 from rest_framework import serializers
-from .models import Remedy, Exercise, Training, TrainingReport, DailyPainReport, User
+from .models import Remedy, RemedyIntake, Exercise, Training, TrainingReport, DailyPainReport, User
 
 class LoginSerializer(serializers.Serializer):
     username = serializers.CharField()
@@ -11,6 +11,11 @@ class RemedySerializer(serializers.ModelSerializer):
         model = Remedy
         fields = '__all__'
         read_only_fields = ('user',)
+
+class RemedyIntakeSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = RemedyIntake
+        fields = '__all__'
 
 class ExerciseSerializer(serializers.ModelSerializer):
     class Meta:

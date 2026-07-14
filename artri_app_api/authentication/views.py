@@ -1,4 +1,5 @@
 from rest_framework import status, generics, permissions
+from rest_framework.exceptions import PermissionDenied
 from rest_framework.response import Response
 from django.core.mail import EmailMultiAlternatives
 from django.dispatch import receiver
@@ -6,10 +7,11 @@ from django.template.loader import render_to_string
 from django.urls import reverse
 from django_rest_passwordreset.signals import reset_password_token_created
 
-from .models import Remedy, Exercise, Training, TrainingReport, DailyPainReport, User
+from .models import Remedy, RemedyIntake, Exercise, Training, TrainingReport, DailyPainReport, User
 from .serializers import (
     UserRegistrationSerializer,
     RemedySerializer,
+    RemedyIntakeSerializer,
     ExerciseSerializer,
     TrainingSerializer,
     TrainingReportSerializer,
@@ -39,6 +41,46 @@ class RemedyListCreateView(generics.ListCreateAPIView):
     # 3. ASSOCIA O NOVO REMÉDIO AO USUÁRIO LOGADO
     def perform_create(self, serializer):
         serializer.save(user=self.request.user)
+
+
+class RemedyDetailView(generics.RetrieveUpdateDestroyAPIView):
+    serializer_class = RemedySerializer
+    permission_classes = [permissions.IsAuthenticated]
+
+    # SÓ PERMITE ACESSAR/EDITAR/REMOVER REMÉDIOS DO PRÓPRIO USUÁRIO
+    def get_queryset(self):
+        return Remedy.objects.filter(user=self.request.user)
+
+
+class RemedyIntakeListCreateView(generics.ListCreateAPIView):
+    serializer_class = RemedyIntakeSerializer
+    permission_classes = [permissions.IsAuthenticated]
+
+    # FILTRA PELOS REMÉDIOS DO USUÁRIO LOGADO E, OPCIONALMENTE, POR DATA
+    # (?date=YYYY-MM-DD), usado pra saber o que já foi tomado num dia.
+    def get_queryset(self):
+        queryset = RemedyIntake.objects.filter(remedy__user=self.request.user)
+
+        date = self.request.query_params.get('date')
+        if date:
+            queryset = queryset.filter(date=date)
+
+        return queryset
+
+    def perform_create(self, serializer):
+        remedy = serializer.validated_data['remedy']
+        if remedy.user != self.request.user:
+            raise PermissionDenied('Esse remédio não pertence a você.')
+
+        serializer.save()
+
+
+class RemedyIntakeDetailView(generics.DestroyAPIView):
+    serializer_class = RemedyIntakeSerializer
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get_queryset(self):
+        return RemedyIntake.objects.filter(remedy__user=self.request.user)
 
 
 class TrainingReportListCreateView(generics.ListCreateAPIView):
